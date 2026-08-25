@@ -1,0 +1,24 @@
+{
+  "name": "SpectrumOS Assistive Platform",
+  "short_name": "SpectrumOS",
+  "description": "Modular Neurodiversity & Autism Assistive Platform",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f0f7ff",
+  "theme_color": "#0f88eb",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
