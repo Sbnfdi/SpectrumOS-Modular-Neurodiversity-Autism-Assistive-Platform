@@ -19,10 +19,12 @@ import {
   ChevronRight,
   ChevronLeft,
   Flame,
-  Coffee
+  Coffee,
+  Plus,
+  X
 } from 'lucide-react';
 
-interface MicroStep {
+export interface MicroStep {
   stepIndex: number;
   title: string;
   instruction: string;
@@ -31,7 +33,7 @@ interface MicroStep {
   completed?: boolean;
 }
 
-interface TaskBreakdown {
+export interface TaskBreakdown {
   taskTitle: string;
   estimatedTotalMinutes: number;
   sensoryPreparation: string;
@@ -57,6 +59,13 @@ export default function ExecutiveBreakdown() {
   const [focusTimerSeconds, setFocusTimerSeconds] = useState<number>(0);
   const [focusTimerTotal, setFocusTimerTotal] = useState<number>(0);
   const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false);
+
+  // Add Custom Step Modal State
+  const [showAddStepModal, setShowAddStepModal] = useState(false);
+  const [customStepTitle, setCustomStepTitle] = useState('');
+  const [customStepInstruction, setCustomStepInstruction] = useState('');
+  const [customStepDuration, setCustomStepDuration] = useState(3);
+  const [customStepReward, setCustomStepReward] = useState('Take a cold sip of water & stretch');
 
   // Timer loop
   useEffect(() => {
@@ -139,11 +148,31 @@ export default function ExecutiveBreakdown() {
     setBreakdown({ ...breakdown, microSteps: updated });
   };
 
-  const currentFocusStep = breakdown && focusStepIndex !== null ? breakdown.microSteps[focusStepIndex] : null;
+  const handleAddCustomStep = () => {
+    if (!breakdown || !customStepTitle.trim()) return;
 
-  const percentElapsed = focusTimerTotal > 0
-    ? Math.max(0, Math.min(100, ((focusTimerTotal - focusTimerSeconds) / focusTimerTotal) * 100))
-    : 0;
+    const newStep: MicroStep = {
+      stepIndex: breakdown.microSteps.length + 1,
+      title: customStepTitle.trim(),
+      instruction: customStepInstruction.trim() || customStepTitle.trim(),
+      durationMinutes: Math.max(1, customStepDuration),
+      dopamineReward: customStepReward.trim(),
+      completed: false,
+    };
+
+    setBreakdown({
+      ...breakdown,
+      microSteps: [...breakdown.microSteps, newStep],
+      estimatedTotalMinutes: breakdown.estimatedTotalMinutes + newStep.durationMinutes,
+    });
+
+    setShowAddStepModal(false);
+    setCustomStepTitle('');
+    setCustomStepInstruction('');
+    sensoryAudio.playSoftChime('success');
+  };
+
+  const currentFocusStep = breakdown && focusStepIndex !== null ? breakdown.microSteps[focusStepIndex] : null;
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6">
@@ -328,11 +357,20 @@ export default function ExecutiveBreakdown() {
             </div>
           )}
 
-          {/* Full Step Checklist */}
+          {/* Full Step Checklist with Add Custom Step Button */}
           <div className="space-y-2.5">
-            <h4 className="text-xs font-extrabold uppercase tracking-wider text-[var(--text-secondary)] px-1">
-              All Atomic Micro-Steps ({breakdown.microSteps.length})
-            </h4>
+            <div className="flex items-center justify-between px-1">
+              <h4 className="text-xs font-extrabold uppercase tracking-wider text-[var(--text-secondary)]">
+                All Atomic Micro-Steps ({breakdown.microSteps.length})
+              </h4>
+              <button
+                onClick={() => setShowAddStepModal(true)}
+                className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add Micro-Step</span>
+              </button>
+            </div>
 
             {breakdown.microSteps.map((step, idx) => (
               <div
@@ -380,6 +418,95 @@ export default function ExecutiveBreakdown() {
                 </button>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Add Custom Micro-Step Modal */}
+      {showAddStepModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-md sensory-card p-6 space-y-4 animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between pb-2 border-b border-[var(--border-color)]">
+              <h3 className="text-base font-extrabold text-[var(--text-primary)]">
+                Add Atomic Micro-Step
+              </h3>
+              <button
+                onClick={() => setShowAddStepModal(false)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-bold text-[var(--text-secondary)] block mb-1">
+                  Micro-Action Name
+                </label>
+                <input
+                  type="text"
+                  value={customStepTitle}
+                  onChange={(e) => setCustomStepTitle(e.target.value)}
+                  placeholder="e.g., 'Wipe just the coffee table'"
+                  className="w-full px-3 py-2 rounded-xl border border-[var(--border-color)] bg-[var(--bg-surface)] text-sm text-[var(--text-primary)]"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-[var(--text-secondary)] block mb-1">
+                  Concrete Instruction (Zero decision fatigue)
+                </label>
+                <input
+                  type="text"
+                  value={customStepInstruction}
+                  onChange={(e) => setCustomStepInstruction(e.target.value)}
+                  placeholder="e.g., 'Grab 1 wet wipe, swipe the surface once, throw in bin.'"
+                  className="w-full px-3 py-2 rounded-xl border border-[var(--border-color)] bg-[var(--bg-surface)] text-sm text-[var(--text-primary)]"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-[var(--text-secondary)] block mb-1">
+                  Duration (Minutes): {customStepDuration} min
+                </label>
+                <input
+                  type="range"
+                  min="1"
+                  max="10"
+                  value={customStepDuration}
+                  onChange={(e) => setCustomStepDuration(parseInt(e.target.value))}
+                  className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-[var(--text-secondary)] block mb-1">
+                  Micro Dopamine Reward
+                </label>
+                <input
+                  type="text"
+                  value={customStepReward}
+                  onChange={(e) => setCustomStepReward(e.target.value)}
+                  placeholder="e.g., 'Take a deep breath and eat one blueberry.'"
+                  className="w-full px-3 py-2 rounded-xl border border-[var(--border-color)] bg-[var(--bg-surface)] text-sm text-[var(--text-primary)]"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-3 border-t border-[var(--border-color)]">
+              <button
+                onClick={() => setShowAddStepModal(false)}
+                className="px-4 py-2 rounded-xl border border-[var(--border-color)] text-xs font-bold text-[var(--text-secondary)]"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddCustomStep}
+                className="px-5 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold shadow-sm hover:bg-emerald-700"
+              >
+                Save Micro-Step
+              </button>
+            </div>
           </div>
         </div>
       )}

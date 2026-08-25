@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import AppNavbar from '@/components/layout/AppNavbar';
 import EmergencyCalm from '@/components/early-childhood/EmergencyCalm';
+import ServiceWorkerRegister from '@/components/layout/ServiceWorkerRegister';
 
 export const metadata: Metadata = {
   title: 'SpectrumOS - Modular Neurodiversity & Autism Assistive Platform',
@@ -29,6 +30,7 @@ export default function RootLayout({
   return (
     <html lang="en" data-theme="calm-blue" suppressHydrationWarning>
       <body className="min-h-screen flex flex-col bg-[var(--bg-primary)] text-[var(--text-primary)] antialiased transition-colors selection:bg-blue-500/20">
+        <ServiceWorkerRegister />
         <AppNavbar />
         <main className="flex-1 w-full pb-12">
           {children}

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { speechService } from '@/lib/speechSynthesis';
 import { sensoryAudio } from '@/lib/audioEngine';
 import { useProfileStore } from '@/store/useProfileStore';
@@ -19,10 +19,11 @@ import {
   CheckCircle2,
   Send,
   Loader2,
-  BookmarkPlus
+  BookmarkPlus,
+  FolderOpen
 } from 'lucide-react';
 
-interface StoryStep {
+export interface StoryStep {
   stepNumber: number;
   type: string;
   title: string;
@@ -43,6 +44,10 @@ export default function SocialStoryGenerator() {
   const { apiKey } = useProfileStore();
   const [customScenario, setCustomScenario] = useState('');
   const [activeStoryTitle, setActiveStoryTitle] = useState('Visiting the Dentist for a Tooth Cleaning');
+  const [savedStories, setSavedStories] = useState<{ id: string; scenarioTitle: string; storyData: string }[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+
   const [steps, setSteps] = useState<StoryStep[]>([
     {
       stepNumber: 1,
@@ -82,12 +87,25 @@ export default function SocialStoryGenerator() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
 
+  // Fetch saved stories on mount
+  useEffect(() => {
+    fetch('/api/social-stories')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.stories) {
+          setSavedStories(data.stories);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const handleGenerate = async (scenarioToGenerate: string) => {
     if (!scenarioToGenerate.trim()) return;
 
     setIsLoading(true);
     sensoryAudio.playSoftChime('tap');
     setActiveStoryTitle(scenarioToGenerate);
+    setIsSaved(false);
 
     try {
       const res = await fetch('/api/ai/social-story', {
@@ -109,6 +127,46 @@ export default function SocialStoryGenerator() {
       console.error('Failed to generate social story:', err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSaveToBinder = async () => {
+    setIsSaving(true);
+    sensoryAudio.playSoftChime('tap');
+
+    try {
+      const res = await fetch('/api/social-stories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scenarioTitle: activeStoryTitle,
+          storyData: steps,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success && data.story) {
+        setSavedStories((prev) => [data.story, ...prev]);
+        setIsSaved(true);
+        sensoryAudio.playSoftChime('bloom');
+        setTimeout(() => setIsSaved(false), 3000);
+      }
+    } catch (err) {
+      console.error('Failed to save story:', err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleLoadSavedStory = (storyObj: { scenarioTitle: string; storyData: string }) => {
+    try {
+      const parsedSteps = JSON.parse(storyObj.storyData);
+      setSteps(parsedSteps);
+      setActiveStoryTitle(storyObj.scenarioTitle);
+      setActiveStepIndex(0);
+      sensoryAudio.playSoftChime('tap');
+    } catch (e) {
+      console.error('Error loading saved story:', e);
     }
   };
 
@@ -141,13 +199,24 @@ export default function SocialStoryGenerator() {
             </p>
           </div>
 
-          <button
-            onClick={handlePrint}
-            className="self-start sm:self-auto px-3 py-1.5 rounded-xl border border-[var(--border-color)] text-xs font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-surface)] flex items-center gap-1.5 transition-colors"
-          >
-            <Printer className="w-3.5 h-3.5" />
-            <span>Print Cards</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleSaveToBinder}
+              disabled={isSaving}
+              className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all"
+            >
+              <BookmarkPlus className="w-3.5 h-3.5" />
+              <span>{isSaved ? 'Saved in Binder!' : 'Save Story'}</span>
+            </button>
+
+            <button
+              onClick={handlePrint}
+              className="px-3 py-1.5 rounded-xl border border-[var(--border-color)] text-xs font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-surface)] flex items-center gap-1.5 transition-colors"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              <span>Print Cards</span>
+            </button>
+          </div>
         </div>
 
         {/* Input bar */}
@@ -193,6 +262,25 @@ export default function SocialStoryGenerator() {
             </button>
           ))}
         </div>
+
+        {/* Saved Stories Binder Chips */}
+        {savedStories.length > 0 && (
+          <div className="pt-2 border-t border-[var(--border-color)] flex flex-wrap items-center gap-2">
+            <span className="text-xs font-bold text-[var(--text-secondary)] flex items-center gap-1">
+              <FolderOpen className="w-3.5 h-3.5 text-indigo-500" />
+              <span>Saved Binder:</span>
+            </span>
+            {savedStories.slice(0, 4).map((story) => (
+              <button
+                key={story.id}
+                onClick={() => handleLoadSavedStory(story)}
+                className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-800 hover:bg-indigo-500/20 truncate max-w-[180px]"
+              >
+                {story.scenarioTitle}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* 4-Step Interactive Story Visualizer */}

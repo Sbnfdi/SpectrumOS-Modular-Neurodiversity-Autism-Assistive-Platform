@@ -258,6 +258,20 @@ export default function EchoBloom() {
   // Lenient Phoneme & Vocal Effort Evaluation
   const evaluatePhoneme = (heardText: string) => {
     const isMatch = selectedWord.allowedApproximations.some((approx) => heardText.includes(approx));
+    const score = isMatch ? 0.95 : 0.75;
+
+    // Log attempt to SQLite database
+    try {
+      fetch('/api/speech-attempts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          targetWord: selectedWord.word,
+          phonemeDetected: heardText,
+          accuracyScore: score,
+        }),
+      }).catch(() => {});
+    } catch {}
 
     if (isMatch) {
       setRewardLevel(100);

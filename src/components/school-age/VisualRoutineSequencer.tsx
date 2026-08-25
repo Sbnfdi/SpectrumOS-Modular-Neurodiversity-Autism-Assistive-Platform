@@ -15,10 +15,12 @@ import {
   BookOpen,
   Plus,
   Clock,
-  Award
+  Award,
+  X,
+  PlusCircle
 } from 'lucide-react';
 
-interface RoutineStep {
+export interface RoutineStep {
   id: string;
   title: string;
   durationMinutes: number;
@@ -26,7 +28,7 @@ interface RoutineStep {
   icon?: string;
 }
 
-interface RoutineSequence {
+export interface RoutineSequence {
   id: string;
   title: string;
   icon: string;
@@ -73,6 +75,11 @@ export default function VisualRoutineSequencer() {
   const [sequences, setSequences] = useState<RoutineSequence[]>(defaultSequences);
   const [activeSeqId, setActiveSeqId] = useState<string>('morning');
   const [activeStepId, setActiveStepId] = useState<string | null>(null);
+
+  // Modal State for adding custom steps
+  const [showAddStepModal, setShowAddStepModal] = useState(false);
+  const [newStepTitle, setNewStepTitle] = useState('');
+  const [newStepDuration, setNewStepDuration] = useState(3);
 
   // Timer state (seconds remaining in active step)
   const [timerSeconds, setTimerSeconds] = useState<number>(0);
@@ -133,11 +140,59 @@ export default function VisualRoutineSequencer() {
               });
             } catch {}
           }
+
+          // Persist to SQLite
+          try {
+            fetch('/api/routines', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                id: seq.id,
+                title: seq.title,
+                steps: updatedSteps,
+                isCompleted: allDone,
+              }),
+            }).catch(() => {});
+          } catch {}
+
           return { ...seq, steps: updatedSteps };
         }
         return seq;
       })
     );
+  };
+
+  const handleAddStep = () => {
+    if (!newStepTitle.trim()) return;
+
+    const newStep: RoutineStep = {
+      id: `step_${Date.now()}`,
+      title: newStepTitle.trim(),
+      durationMinutes: Math.max(1, newStepDuration),
+      completed: false,
+    };
+
+    setSequences((prev) =>
+      prev.map((seq) => {
+        if (seq.id === activeSeqId) {
+          const updated = { ...seq, steps: [...seq.steps, newStep] };
+          try {
+            fetch('/api/routines', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(updated),
+            }).catch(() => {});
+          } catch {}
+          return updated;
+        }
+        return seq;
+      })
+    );
+
+    setShowAddStepModal(false);
+    setNewStepTitle('');
+    setNewStepDuration(3);
+    sensoryAudio.playSoftChime('success');
   };
 
   const handleResetRoutine = () => {
@@ -187,14 +242,25 @@ export default function VisualRoutineSequencer() {
           ))}
         </div>
 
-        <button
-          onClick={handleResetRoutine}
-          className="px-3 py-1.5 rounded-xl border border-[var(--border-color)] text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center gap-1.5"
-          title="Reset Checkboxes"
-        >
-          <RotateCcw className="w-3.5 h-3.5" />
-          <span>Reset</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowAddStepModal(true)}
+            className="px-3 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all"
+            title="Add Custom Routine Step"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Add Step</span>
+          </button>
+
+          <button
+            onClick={handleResetRoutine}
+            className="px-3 py-1.5 rounded-xl border border-[var(--border-color)] text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center gap-1.5"
+            title="Reset Checkboxes"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Reset</span>
+          </button>
+        </div>
       </div>
 
       {/* Main Routine Grid with Non-Stressful Pie Timer */}
@@ -212,7 +278,7 @@ export default function VisualRoutineSequencer() {
           </div>
 
           <div className="space-y-2.5">
-            {currentSequence.steps.map((step, idx) => {
+            {currentSequence.steps.map((step) => {
               const isCurrent = activeStepId === step.id;
               return (
                 <div
@@ -347,6 +413,69 @@ export default function VisualRoutineSequencer() {
           </p>
         </div>
       </div>
+
+      {/* Add Custom Step Modal */}
+      {showAddStepModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-md sensory-card p-6 space-y-4 animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between pb-2 border-b border-[var(--border-color)]">
+              <h3 className="text-base font-extrabold text-[var(--text-primary)]">
+                Add Step to {currentSequence.title}
+              </h3>
+              <button
+                onClick={() => setShowAddStepModal(false)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-bold text-[var(--text-secondary)] block mb-1">
+                  Step Description
+                </label>
+                <input
+                  type="text"
+                  value={newStepTitle}
+                  onChange={(e) => setNewStepTitle(e.target.value)}
+                  placeholder="e.g., 'Put on noise-cancelling headphones'"
+                  className="w-full px-3 py-2 rounded-xl border border-[var(--border-color)] bg-[var(--bg-surface)] text-sm text-[var(--text-primary)]"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-[var(--text-secondary)] block mb-1">
+                  Gentle Duration (Minutes): {newStepDuration} min
+                </label>
+                <input
+                  type="range"
+                  min="1"
+                  max="30"
+                  value={newStepDuration}
+                  onChange={(e) => setNewStepDuration(parseInt(e.target.value))}
+                  className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-[var(--accent-primary)]"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-3 border-t border-[var(--border-color)]">
+              <button
+                onClick={() => setShowAddStepModal(false)}
+                className="px-4 py-2 rounded-xl border border-[var(--border-color)] text-xs font-bold text-[var(--text-secondary)]"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddStep}
+                className="px-5 py-2 rounded-xl bg-teal-600 text-white text-xs font-bold shadow-sm hover:bg-teal-700"
+              >
+                Save Step
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useProfileStore, UserProfile } from '@/store/useProfileStore';
 import { useSensoryStore } from '@/store/useSensoryStore';
 import { sensoryAudio } from '@/lib/audioEngine';
@@ -17,7 +17,11 @@ import {
   X,
   Volume2,
   WifiOff,
-  Wifi
+  Wifi,
+  Download,
+  Upload,
+  Heart,
+  Gamepad2
 } from 'lucide-react';
 
 export default function CaregiverPage() {
@@ -35,16 +39,29 @@ export default function CaregiverPage() {
   const { theme, setTheme, volumeCeiling, setVolumeCeiling } = useSensoryStore();
 
   const [newSensitivity, setNewSensitivity] = useState('');
+  const [newSpecialInterest, setNewSpecialInterest] = useState('');
   const [keyInput, setKeyInput] = useState(apiKey);
   const [isSaved, setIsSaved] = useState(false);
+  const [speechLogs, setSpeechLogs] = useState<any[]>([]);
 
-  // Sample Speech Attempts Log (Reflecting Drizzle SQLite schema)
-  const speechLogs = [
-    { id: '1', word: 'Water', phoneme: 'Wuh-t', score: 0.88, time: '10 mins ago', status: 'Rewarding' },
-    { id: '2', word: 'Break', phoneme: 'B-ray-k', score: 0.94, time: '2 hours ago', status: 'Rewarding' },
-    { id: '3', word: 'Help', phoneme: 'Heh-p', score: 0.82, time: 'Yesterday', status: 'Rewarding' },
-    { id: '4', word: 'More', phoneme: 'Mo', score: 0.75, time: 'Yesterday', status: 'Rewarding' },
-  ];
+  // Fetch real speech logs from SQLite
+  useEffect(() => {
+    fetch('/api/speech-attempts')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.attempts && data.attempts.length > 0) {
+          setSpeechLogs(data.attempts);
+        } else {
+          // Fallback demo items
+          setSpeechLogs([
+            { id: '1', targetWord: 'Water', phonemeDetected: 'Wuh-t', accuracyScore: 0.88, recordedAt: new Date() },
+            { id: '2', targetWord: 'Break', phonemeDetected: 'B-ray-k', accuracyScore: 0.94, recordedAt: new Date(Date.now() - 3600000) },
+            { id: '3', targetWord: 'Help', phonemeDetected: 'Heh-p', accuracyScore: 0.82, recordedAt: new Date(Date.now() - 7200000) },
+          ]);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const handleAddSensitivity = () => {
     if (!newSensitivity.trim()) return;
@@ -62,11 +79,44 @@ export default function CaregiverPage() {
     sensoryAudio.playSoftChime('tap');
   };
 
+  const handleAddSpecialInterest = () => {
+    if (!newSpecialInterest.trim()) return;
+    if (activeProfile.specialInterests.includes(newSpecialInterest.trim())) return;
+
+    activeProfile.specialInterests.push(newSpecialInterest.trim());
+    setNewSpecialInterest('');
+    sensoryAudio.playSoftChime('tap');
+  };
+
+  const handleRemoveSpecialInterest = (item: string) => {
+    const updated = activeProfile.specialInterests.filter((s) => s !== item);
+    activeProfile.specialInterests = updated;
+    sensoryAudio.playSoftChime('tap');
+  };
+
   const handleSaveApiKey = () => {
     setApiKey(keyInput);
     setIsSaved(true);
     sensoryAudio.playSoftChime('success');
     setTimeout(() => setIsSaved(false), 2500);
+  };
+
+  // Export JSON Backup
+  const handleExportData = () => {
+    const backup = {
+      exportedAt: new Date().toISOString(),
+      activeProfile,
+      availableProfiles,
+      speechLogs,
+    };
+
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `SpectrumOS_Backup_${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    sensoryAudio.playSoftChime('bloom');
   };
 
   return (
@@ -87,8 +137,16 @@ export default function CaregiverPage() {
 
         <div className="flex items-center gap-2">
           <button
+            onClick={handleExportData}
+            className="px-3.5 py-1.5 rounded-xl border border-[var(--border-color)] bg-white dark:bg-slate-800 text-xs font-bold text-[var(--text-primary)] flex items-center gap-1.5 shadow-xs"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>Export Backup</span>
+          </button>
+
+          <button
             onClick={toggleOfflineMode}
-            className={`px-3.5 py-1.5 rounded-full border text-xs font-bold flex items-center gap-1.5 transition-colors ${
+            className={`px-3.5 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-colors ${
               isOfflineMode
                 ? 'bg-amber-500/15 border-amber-400 text-amber-700 dark:text-amber-300'
                 : 'bg-emerald-500/15 border-emerald-400 text-emerald-700 dark:text-emerald-300'
@@ -145,12 +203,10 @@ export default function CaregiverPage() {
 
           {/* Sensory Sensitivities & Special Interests */}
           <div className="p-6 rounded-3xl sensory-card space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-extrabold text-[var(--text-primary)] flex items-center gap-2">
-                <Shield className="w-4 h-4 text-rose-500" />
-                <span>Sensory Sensitivities for {activeProfile.displayName}</span>
-              </h2>
-            </div>
+            <h2 className="text-base font-extrabold text-[var(--text-primary)] flex items-center gap-2">
+              <Shield className="w-4 h-4 text-rose-500" />
+              <span>Sensory Sensitivities for {activeProfile.displayName}</span>
+            </h2>
 
             {/* Sensitivities Tags */}
             <div className="flex flex-wrap gap-2">
@@ -189,6 +245,48 @@ export default function CaregiverPage() {
             </div>
           </div>
 
+          {/* Special Interests Accommodations */}
+          <div className="p-6 rounded-3xl sensory-card space-y-4">
+            <h2 className="text-base font-extrabold text-[var(--text-primary)] flex items-center gap-2">
+              <Gamepad2 className="w-4 h-4 text-indigo-500" />
+              <span>Special Interests & Comfort Themes</span>
+            </h2>
+
+            <div className="flex flex-wrap gap-2">
+              {activeProfile.specialInterests.map((item) => (
+                <span
+                  key={item}
+                  className="px-3 py-1.5 rounded-xl bg-indigo-500/15 border border-indigo-300 text-indigo-800 dark:text-indigo-200 text-xs font-bold flex items-center gap-1.5"
+                >
+                  <span>{item}</span>
+                  <button
+                    onClick={() => handleRemoveSpecialInterest(item)}
+                    className="hover:text-indigo-950 dark:hover:text-white"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </span>
+              ))}
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <input
+                type="text"
+                value={newSpecialInterest}
+                onChange={(e) => setNewSpecialInterest(e.target.value)}
+                placeholder="Add comfort interest (e.g., 'Steam Trains', 'Minecraft Redstone', 'Space')..."
+                className="flex-1 px-4 py-2 rounded-xl border border-[var(--border-color)] bg-[var(--bg-surface)] text-[var(--text-primary)] text-xs focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+              />
+              <button
+                onClick={handleAddSpecialInterest}
+                className="px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-bold flex items-center gap-1 hover:bg-indigo-700 shadow-xs"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add Interest</span>
+              </button>
+            </div>
+          </div>
+
           {/* Speech Analytics & Progress Log */}
           <div className="p-6 rounded-3xl sensory-card space-y-4">
             <div className="flex items-center justify-between">
@@ -208,14 +306,13 @@ export default function CaregiverPage() {
                   className="p-3 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-color)] flex items-center justify-between text-xs"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="font-extrabold text-[var(--text-primary)]">{log.word}</span>
-                    <span className="text-[var(--text-secondary)] font-medium">Heard: "{log.phoneme}"</span>
+                    <span className="font-extrabold text-[var(--text-primary)]">{log.targetWord}</span>
+                    <span className="text-[var(--text-secondary)] font-medium">Heard: "{log.phonemeDetected}"</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold">
-                      {Math.round(log.score * 100)}% Effort Match
+                      {Math.round((log.accuracyScore || 0.85) * 100)}% Effort Match
                     </span>
-                    <span className="text-[var(--text-secondary)]">{log.time}</span>
                   </div>
                 </div>
               ))}
@@ -267,7 +364,7 @@ export default function CaregiverPage() {
               </div>
               <div className="flex justify-between py-1 border-b border-[var(--border-color)]">
                 <span>Local Cache:</span>
-                <span className="font-bold text-[var(--text-primary)]">IndexedDB & SQLite File</span>
+                <span className="font-bold text-[var(--text-primary)]">IndexedDB & SQLite</span>
               </div>
               <div className="flex justify-between py-1 border-b border-[var(--border-color)]">
                 <span>Offline Fallback:</span>
