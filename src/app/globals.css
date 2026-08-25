@@ -1,0 +1,112 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-primary: #f0f7ff;
+    --bg-secondary: #ffffff;
+    --bg-surface: #e4effe;
+    --text-primary: #0c3b6e;
+    --text-secondary: #3b6b9e;
+    --border-color: #bad3f3;
+    --accent-primary: #026ac9;
+    --accent-hover: #074785;
+    --card-shadow: 0 4px 20px -2px rgba(12, 59, 110, 0.08);
+  }
+
+  [data-theme='warm-sand'] {
+    --bg-primary: #fdfbf7;
+    --bg-secondary: #ffffff;
+    --bg-surface: #f4ecdf;
+    --text-primary: #4a3828;
+    --text-secondary: #77593f;
+    --border-color: #e5d5c0;
+    --accent-primary: #b0895c;
+    --accent-hover: #936f4a;
+    --card-shadow: 0 4px 20px -2px rgba(74, 56, 40, 0.08);
+  }
+
+  [data-theme='forest-mist'] {
+    --bg-primary: #f2f8f5;
+    --bg-secondary: #ffffff;
+    --bg-surface: #def0e7;
+    --text-primary: #1e3831;
+    --text-secondary: #3c7062;
+    --border-color: #bedfd1;
+    --accent-primary: #3c7062;
+    --accent-hover: #2b4941;
+    --card-shadow: 0 4px 20px -2px rgba(30, 56, 49, 0.08);
+  }
+
+  [data-theme='lavender-dusk'] {
+    --bg-primary: #faf8ff;
+    --bg-secondary: #ffffff;
+    --bg-surface: #efe8ff;
+    --text-primary: #381f66;
+    --text-secondary: #6e4fa8;
+    --border-color: #ddcfff;
+    --accent-primary: #7432d6;
+    --accent-hover: #50248e;
+    --card-shadow: 0 4px 20px -2px rgba(56, 31, 102, 0.08);
+  }
+
+  [data-theme='high-contrast'], .dark[data-theme='high-contrast'] {
+    --bg-primary: #000000;
+    --bg-secondary: #121212;
+    --bg-surface: #1e1e1e;
+    --text-primary: #ffffff;
+    --text-secondary: #ffff55;
+    --border-color: #ffff00;
+    --accent-primary: #00e5ff;
+    --accent-hover: #76ffff;
+    --card-shadow: 0 0 0 2px #ffff00;
+  }
+
+  [data-theme='dark'], .dark {
+    --bg-primary: #090e17;
+    --bg-secondary: #111b2b;
+    --bg-surface: #18263c;
+    --text-primary: #e2eaf5;
+    --text-secondary: #94a9c9;
+    --border-color: #243a5e;
+    --accent-primary: #38a5f6;
+    --accent-hover: #7cc5fb;
+    --card-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.4);
+  }
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Custom Sensory Card Utility */
+.sensory-card {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--card-shadow);
+  border-radius: 1.25rem;
+}
+
+/* Soft glowing focal styles */
+.sensory-focus:focus-visible {
+  outline: 3px solid var(--accent-primary);
+  outline-offset: 2px;
+}
