@@ -5,9 +5,9 @@ import EmergencyCalm from '@/components/early-childhood/EmergencyCalm';
 import ServiceWorkerRegister from '@/components/layout/ServiceWorkerRegister';
 
 export const metadata: Metadata = {
-  title: 'SpectrumOS - Modular Neurodiversity & Autism Assistive Platform',
+  title: 'SpectrumOS — Modular Neurodiversity & Assistive Platform',
   description:
-    'An adaptive, offline-first assistive platform supporting autistic children, adolescents, adults, and caregivers across communication, sensory regulation, and executive functioning.',
+    'An adaptive, offline-first assistive operating environment crafted for autistic children, adolescents, adults, and caregivers. Organic high-tech interface with neurodiversity-affirming sensory ergonomics.',
   manifest: '/manifest.json',
   icons: {
     icon: '/favicon.ico',
@@ -29,10 +29,25 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" data-theme="calm-blue" suppressHydrationWarning>
-      <body className="min-h-screen flex flex-col bg-[var(--bg-primary)] text-[var(--text-primary)] antialiased transition-colors selection:bg-blue-500/20">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body className="min-h-screen flex flex-col antialiased selection:bg-blue-500/20 font-body relative overflow-x-hidden">
+        {/* Subtle Ambient Mesh Gradient Glow */}
+        <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden opacity-60 dark:opacity-30">
+          <div className="ambient-orb ambient-orb-1" />
+          <div className="ambient-orb ambient-orb-2" />
+          <div className="ambient-orb ambient-orb-3" />
+        </div>
+
         <ServiceWorkerRegister />
         <AppNavbar />
-        <main className="flex-1 w-full pb-12">
+        <main className="flex-1 w-full pb-16">
           {children}
         </main>
         <EmergencyCalm />

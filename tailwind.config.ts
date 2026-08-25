@@ -9,6 +9,11 @@ const config: Config = {
   darkMode: "class",
   theme: {
     extend: {
+      fontFamily: {
+        display: ["var(--font-display)", "system-ui", "-apple-system", "sans-serif"],
+        body: ["var(--font-body)", "system-ui", "-apple-system", "sans-serif"],
+        mono: ["var(--font-mono)", "JetBrains Mono", "monospace"],
+      },
       colors: {
         sensory: {
           blue: {
@@ -61,9 +66,6 @@ const config: Config = {
           }
         },
       },
-      fontFamily: {
-        sans: ["var(--font-lexend)", "system-ui", "sans-serif"],
-      },
       animation: {
         'breathe-in-out': 'breathe 16s ease-in-out infinite',
         'gentle-pulse': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
@@ -72,10 +74,10 @@ const config: Config = {
       keyframes: {
         breathe: {
           '0%, 100%': { transform: 'scale(1)', opacity: '0.85' },
-          '25%': { transform: 'scale(1.28)', opacity: '1' }, // Inhale 4s
-          '50%': { transform: 'scale(1.28)', opacity: '1' }, // Hold 4s
-          '75%': { transform: 'scale(1)', opacity: '0.85' },  // Exhale 4s
-          '87.5%': { transform: 'scale(1)', opacity: '0.85' },// Hold 2s
+          '25%': { transform: 'scale(1.28)', opacity: '1' },
+          '50%': { transform: 'scale(1.28)', opacity: '1' },
+          '75%': { transform: 'scale(1)', opacity: '0.85' },
+          '87.5%': { transform: 'scale(1)', opacity: '0.85' },
         },
         float: {
           '0%, 100%': { transform: 'translateY(0px)' },
