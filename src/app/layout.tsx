@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import AppNavbar from '@/components/layout/AppNavbar';
+import AppFooter from '@/components/layout/AppFooter';
 import EmergencyCalm from '@/components/early-childhood/EmergencyCalm';
 import ServiceWorkerRegister from '@/components/layout/ServiceWorkerRegister';
 
@@ -19,7 +20,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: '#0f88eb',
+  themeColor: '#0284c7',
 };
 
 export default function RootLayout({
@@ -47,9 +48,10 @@ export default function RootLayout({
 
         <ServiceWorkerRegister />
         <AppNavbar />
-        <main className="flex-1 w-full pb-16">
+        <main className="flex-1 w-full pb-12">
           {children}
         </main>
+        <AppFooter />
         <EmergencyCalm />
       </body>
     </html>
