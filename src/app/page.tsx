@@ -6,6 +6,7 @@ import { useSensoryStore } from '@/store/useSensoryStore';
 import { sensoryAudio } from '@/lib/audioEngine';
 import LiveAudioVisualizer from '@/components/home/LiveAudioVisualizer';
 import { SensoryProfiler } from '@/components/home/SensoryProfiler';
+import { StimmingPlayground } from '@/components/home/StimmingPlayground';
 import InteractiveFeatureShowcase from '@/components/home/InteractiveFeatureShowcase';
 import ClinicalMatrixSection from '@/components/home/ClinicalMatrixSection';
 import ClinicalFAQSection from '@/components/home/ClinicalFAQSection';
@@ -145,6 +146,11 @@ export default function HomePage() {
       {/* 2.5 ENVIRONMENTAL SENSORY PROFILER & DECIBEL SOUND METER */}
       <section>
         <SensoryProfiler />
+      </section>
+
+      {/* 2.8 TACTILE STIMMING & FOCUS PLAYGROUND */}
+      <section>
+        <StimmingPlayground />
       </section>
 
       {/* 3. INTERACTIVE FEATURE TESTBED & LIVE SANDBOX */}
