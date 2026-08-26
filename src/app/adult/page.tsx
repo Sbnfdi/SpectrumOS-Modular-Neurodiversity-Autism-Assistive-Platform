@@ -3,10 +3,11 @@
 import React, { useState } from 'react';
 import ToneDecoder from '@/components/adult/ToneDecoder';
 import ExecutiveBreakdown from '@/components/adult/ExecutiveBreakdown';
-import { Compass, ListChecks, Sparkles } from 'lucide-react';
+import { InteroceptionBodyMap } from '@/components/adult/InteroceptionBodyMap';
+import { Compass, ListChecks, Sparkles, Brain } from 'lucide-react';
 
 export default function AdultPage() {
-  const [activeTab, setActiveTab] = useState<'tone' | 'executive'>('tone');
+  const [activeTab, setActiveTab] = useState<'tone' | 'executive' | 'interoception'>('tone');
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6 sm:py-8 space-y-6">
@@ -20,7 +21,7 @@ export default function AdultPage() {
             </h1>
           </div>
           <p className="text-sm text-[var(--text-secondary)] mt-1 font-medium">
-            Autonomy, social decryption, spoon conservation, and executive function scaffolding.
+            Autonomy, social decryption, spoon conservation, interoception decoding, and executive function scaffolding.
           </p>
         </div>
 
@@ -31,7 +32,7 @@ export default function AdultPage() {
       </div>
 
       {/* Sub-Navigation Tabs */}
-      <div className="flex items-center gap-3 border-b border-[var(--border-color)] pb-3">
+      <div className="flex flex-wrap items-center gap-3 border-b border-[var(--border-color)] pb-3">
         <button
           onClick={() => setActiveTab('tone')}
           className={`px-5 py-2.5 rounded-2xl text-sm font-extrabold flex items-center gap-2 transition-all ${
@@ -55,11 +56,25 @@ export default function AdultPage() {
           <ListChecks className="w-4 h-4" />
           <span>Executive Task Breakdown</span>
         </button>
+
+        <button
+          onClick={() => setActiveTab('interoception')}
+          className={`px-5 py-2.5 rounded-2xl text-sm font-extrabold flex items-center gap-2 transition-all ${
+            activeTab === 'interoception'
+              ? 'bg-[var(--accent-primary)] text-white shadow-md scale-[1.02]'
+              : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+          }`}
+        >
+          <Brain className="w-4 h-4" />
+          <span>Interoception Body Map</span>
+        </button>
       </div>
 
       {/* Content */}
       <main>
-        {activeTab === 'tone' ? <ToneDecoder /> : <ExecutiveBreakdown />}
+        {activeTab === 'tone' && <ToneDecoder />}
+        {activeTab === 'executive' && <ExecutiveBreakdown />}
+        {activeTab === 'interoception' && <InteroceptionBodyMap />}
       </main>
     </div>
   );
