@@ -3,10 +3,11 @@
 import React, { useState } from 'react';
 import SocialStoryGenerator from '@/components/school-age/SocialStoryGenerator';
 import VisualRoutineSequencer from '@/components/school-age/VisualRoutineSequencer';
-import { BookOpen, CalendarCheck, Sparkles } from 'lucide-react';
+import { SensoryMealPlanner } from '@/components/school-age/SensoryMealPlanner';
+import { BookOpen, CalendarCheck, Sparkles, Utensils } from 'lucide-react';
 
 export default function SchoolAgePage() {
-  const [activeTab, setActiveTab] = useState<'stories' | 'routines'>('stories');
+  const [activeTab, setActiveTab] = useState<'stories' | 'routines' | 'meals'>('stories');
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6 sm:py-8 space-y-6">
@@ -20,7 +21,7 @@ export default function SchoolAgePage() {
             </h1>
           </div>
           <p className="text-sm text-[var(--text-secondary)] mt-1 font-medium">
-            Socialization, predictable transitions, and gamified visual routines.
+            Socialization, predictable transitions, gamified visual routines, and sensory meal planning.
           </p>
         </div>
 
@@ -31,7 +32,7 @@ export default function SchoolAgePage() {
       </div>
 
       {/* Sub-Navigation Tabs */}
-      <div className="flex items-center gap-3 border-b border-[var(--border-color)] pb-3">
+      <div className="flex flex-wrap items-center gap-3 border-b border-[var(--border-color)] pb-3">
         <button
           onClick={() => setActiveTab('stories')}
           className={`px-5 py-2.5 rounded-2xl text-sm font-extrabold flex items-center gap-2 transition-all ${
@@ -55,11 +56,25 @@ export default function SchoolAgePage() {
           <CalendarCheck className="w-4 h-4" />
           <span>Visual Routine Sequencer</span>
         </button>
+
+        <button
+          onClick={() => setActiveTab('meals')}
+          className={`px-5 py-2.5 rounded-2xl text-sm font-extrabold flex items-center gap-2 transition-all ${
+            activeTab === 'meals'
+              ? 'bg-[var(--accent-primary)] text-white shadow-md scale-[1.02]'
+              : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+          }`}
+        >
+          <Utensils className="w-4 h-4" />
+          <span>Sensory Meal Planner</span>
+        </button>
       </div>
 
       {/* Content */}
       <main>
-        {activeTab === 'stories' ? <SocialStoryGenerator /> : <VisualRoutineSequencer />}
+        {activeTab === 'stories' && <SocialStoryGenerator />}
+        {activeTab === 'routines' && <VisualRoutineSequencer />}
+        {activeTab === 'meals' && <SensoryMealPlanner />}
       </main>
     </div>
   );
