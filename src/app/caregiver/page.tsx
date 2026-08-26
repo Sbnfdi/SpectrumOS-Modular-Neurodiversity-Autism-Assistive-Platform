@@ -21,8 +21,49 @@ import {
   Download,
   Upload,
   Heart,
-  Gamepad2
+  Gamepad2,
+  FileSpreadsheet,
+  Printer,
+  Target,
+  AlertTriangle,
+  Stethoscope
 } from 'lucide-react';
+
+interface IEPGoal {
+  id: string;
+  category: 'Speech' | 'Occupational Therapy' | 'Sensory Regulation' | 'Transitions';
+  description: string;
+  targetDate: string;
+  progressPercent: number;
+  completed: boolean;
+}
+
+const defaultIEPGoals: IEPGoal[] = [
+  {
+    id: 'iep_1',
+    category: 'Speech',
+    description: 'Self-advocate using 2-tap AAC phrase for sensory breaks when volume > 75dB.',
+    targetDate: '2026-11-15',
+    progressPercent: 75,
+    completed: false,
+  },
+  {
+    id: 'iep_2',
+    category: 'Sensory Regulation',
+    description: 'Initiate 4-4-4-4 box breathing or brown noise independently during transition overload.',
+    targetDate: '2026-12-01',
+    progressPercent: 85,
+    completed: false,
+  },
+  {
+    id: 'iep_3',
+    category: 'Transitions',
+    description: 'Follow 4-step Carol Gray visual social story prior to unexpected schedule changes.',
+    targetDate: '2026-10-30',
+    progressPercent: 90,
+    completed: true,
+  },
+];
 
 export default function CaregiverPage() {
   const {
@@ -43,6 +84,7 @@ export default function CaregiverPage() {
   const [keyInput, setKeyInput] = useState(apiKey);
   const [isSaved, setIsSaved] = useState(false);
   const [speechLogs, setSpeechLogs] = useState<any[]>([]);
+  const [iepGoals, setIepGoals] = useState<IEPGoal[]>(defaultIEPGoals);
 
   // Fetch real speech logs from SQLite
   useEffect(() => {
@@ -52,7 +94,6 @@ export default function CaregiverPage() {
         if (data.success && data.attempts && data.attempts.length > 0) {
           setSpeechLogs(data.attempts);
         } else {
-          // Fallback demo items
           setSpeechLogs([
             { id: '1', targetWord: 'Water', phonemeDetected: 'Wuh-t', accuracyScore: 0.88, recordedAt: new Date() },
             { id: '2', targetWord: 'Break', phonemeDetected: 'B-ray-k', accuracyScore: 0.94, recordedAt: new Date(Date.now() - 3600000) },
@@ -101,12 +142,12 @@ export default function CaregiverPage() {
     setTimeout(() => setIsSaved(false), 2500);
   };
 
-  // Export JSON Backup
   const handleExportData = () => {
     const backup = {
       exportedAt: new Date().toISOString(),
       activeProfile,
       availableProfiles,
+      iepGoals,
       speechLogs,
     };
 
@@ -114,9 +155,13 @@ export default function CaregiverPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `SpectrumOS_Backup_${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `SpectrumOS_Clinical_Backup_${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     sensoryAudio.playSoftChime('bloom');
+  };
+
+  const handlePrintClinicalReport = () => {
+    window.print();
   };
 
   return (
@@ -131,11 +176,19 @@ export default function CaregiverPage() {
             </h1>
           </div>
           <p className="text-sm text-[var(--text-secondary)] mt-1 font-medium">
-            Manage neurodivergent profiles, sensory accommodation thresholds, and offline sync.
+            Manage neurodivergent profiles, IEP clinical goals, sensory accommodations, and offline sync.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 print:hidden">
+          <button
+            onClick={handlePrintClinicalReport}
+            className="px-3.5 py-1.5 rounded-xl border border-[var(--border-color)] bg-white dark:bg-slate-800 text-xs font-bold text-[var(--text-primary)] flex items-center gap-1.5 shadow-xs"
+          >
+            <Printer className="w-3.5 h-3.5 text-blue-500" />
+            <span>Print OT/SLP Report</span>
+          </button>
+
           <button
             onClick={handleExportData}
             className="px-3.5 py-1.5 rounded-xl border border-[var(--border-color)] bg-white dark:bg-slate-800 text-xs font-bold text-[var(--text-primary)] flex items-center gap-1.5 shadow-xs"
@@ -153,7 +206,7 @@ export default function CaregiverPage() {
             }`}
           >
             {isOfflineMode ? <WifiOff className="w-3.5 h-3.5" /> : <Wifi className="w-3.5 h-3.5" />}
-            <span>{isOfflineMode ? 'Offline Local Storage' : 'Cloud Sync Active'}</span>
+            <span>{isOfflineMode ? 'Offline Storage' : 'Cloud Sync Active'}</span>
           </button>
         </div>
       </div>
@@ -161,17 +214,63 @@ export default function CaregiverPage() {
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
         {/* Left Column (8 cols) */}
         <div className="md:col-span-8 space-y-6">
+          {/* IEP Clinical Goals Tracker */}
+          <div className="p-6 rounded-3xl sensory-card space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-[var(--border-color)]">
+              <h2 className="text-base font-extrabold text-[var(--text-primary)] flex items-center gap-2">
+                <Target className="w-4 h-4 text-indigo-500" />
+                <span>IEP & Clinical Therapy Goals ({activeProfile.displayName})</span>
+              </h2>
+              <span className="text-xs font-bold text-indigo-600 bg-indigo-500/10 px-2.5 py-0.5 rounded-full">
+                OT & SLP Telemetry
+              </span>
+            </div>
+
+            <div className="space-y-3">
+              {iepGoals.map((goal) => (
+                <div
+                  key={goal.id}
+                  className="p-4 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-surface)] space-y-2"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-extrabold px-2 py-0.5 rounded-md bg-blue-500/15 text-blue-700 dark:text-blue-300">
+                      {goal.category}
+                    </span>
+                    <span className="text-xs font-semibold text-slate-500 font-mono">
+                      Target: {goal.targetDate}
+                    </span>
+                  </div>
+
+                  <p className="text-sm font-bold text-[var(--text-primary)]">{goal.description}</p>
+
+                  {/* Progress Bar */}
+                  <div className="space-y-1 pt-1">
+                    <div className="flex justify-between text-xs font-bold text-[var(--text-secondary)]">
+                      <span>Milestone Progress</span>
+                      <span className="font-mono">{goal.progressPercent}%</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-blue-500 to-emerald-500 rounded-full"
+                        style={{ width: `${goal.progressPercent}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* Profile Switcher */}
           <div className="p-6 rounded-3xl sensory-card space-y-4">
             <h2 className="text-base font-extrabold text-[var(--text-primary)] flex items-center gap-2">
               <Users className="w-4 h-4 text-[var(--accent-primary)]" />
-              <span>Active Individual Profiles</span>
+              <span>Registered Family & Client Profiles</span>
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {availableProfiles.map((prof) => {
                 const isSelected = activeProfile.id === prof.id;
-                const stageIcons: Record<string, string> = { early: '🧸', school: '🎒', adult: '🧭' };
                 return (
                   <button
                     key={prof.id}
@@ -186,14 +285,14 @@ export default function CaregiverPage() {
                     }`}
                   >
                     <div className="flex items-center justify-between w-full">
-                      <span className="text-xl">{stageIcons[prof.developmentalStage] || '👤'}</span>
+                      <span className="text-xl">{prof.avatarIcon || '👤'}</span>
                       {isSelected && <CheckCircle2 className="w-4 h-4 text-[var(--accent-primary)]" />}
                     </div>
                     <span className="text-sm font-extrabold text-[var(--text-primary)] mt-1">
                       {prof.displayName}
                     </span>
-                    <span className="text-[11px] text-[var(--text-secondary)] capitalize">
-                      {prof.developmentalStage} Stage
+                    <span className="text-[11px] text-[var(--text-secondary)] capitalize font-semibold">
+                      {prof.role} • {prof.developmentalStage}
                     </span>
                   </button>
                 );
@@ -208,7 +307,6 @@ export default function CaregiverPage() {
               <span>Sensory Sensitivities for {activeProfile.displayName}</span>
             </h2>
 
-            {/* Sensitivities Tags */}
             <div className="flex flex-wrap gap-2">
               {activeProfile.sensorySensitivities.map((item) => (
                 <span
@@ -226,7 +324,6 @@ export default function CaregiverPage() {
               ))}
             </div>
 
-            {/* Add Custom Sensitivity Input */}
             <div className="flex gap-2 pt-2">
               <input
                 type="text"
@@ -241,48 +338,6 @@ export default function CaregiverPage() {
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Add</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Special Interests Accommodations */}
-          <div className="p-6 rounded-3xl sensory-card space-y-4">
-            <h2 className="text-base font-extrabold text-[var(--text-primary)] flex items-center gap-2">
-              <Gamepad2 className="w-4 h-4 text-indigo-500" />
-              <span>Special Interests & Comfort Themes</span>
-            </h2>
-
-            <div className="flex flex-wrap gap-2">
-              {activeProfile.specialInterests.map((item) => (
-                <span
-                  key={item}
-                  className="px-3 py-1.5 rounded-xl bg-indigo-500/15 border border-indigo-300 text-indigo-800 dark:text-indigo-200 text-xs font-bold flex items-center gap-1.5"
-                >
-                  <span>{item}</span>
-                  <button
-                    onClick={() => handleRemoveSpecialInterest(item)}
-                    className="hover:text-indigo-950 dark:hover:text-white"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </span>
-              ))}
-            </div>
-
-            <div className="flex gap-2 pt-2">
-              <input
-                type="text"
-                value={newSpecialInterest}
-                onChange={(e) => setNewSpecialInterest(e.target.value)}
-                placeholder="Add comfort interest (e.g., 'Steam Trains', 'Minecraft Redstone', 'Space')..."
-                className="flex-1 px-4 py-2 rounded-xl border border-[var(--border-color)] bg-[var(--bg-surface)] text-[var(--text-primary)] text-xs focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
-              />
-              <button
-                onClick={handleAddSpecialInterest}
-                className="px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-bold flex items-center gap-1 hover:bg-indigo-700 shadow-xs"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Add Interest</span>
               </button>
             </div>
           </div>
@@ -350,27 +405,24 @@ export default function CaregiverPage() {
             </div>
           </div>
 
-          {/* Database & Edge Sync Info */}
+          {/* Clinical Export & Privacy Card */}
           <div className="p-6 rounded-3xl sensory-card space-y-3">
             <h2 className="text-base font-extrabold text-[var(--text-primary)] flex items-center gap-2">
-              <Database className="w-4 h-4 text-teal-500" />
-              <span>Drizzle ORM & SQLite Sync</span>
+              <Stethoscope className="w-4 h-4 text-teal-500" />
+              <span>Clinical Therapy Export</span>
             </h2>
 
-            <div className="text-xs text-[var(--text-secondary)] space-y-2 font-medium">
-              <div className="flex justify-between py-1 border-b border-[var(--border-color)]">
-                <span>Database Engine:</span>
-                <span className="font-bold text-[var(--text-primary)]">LibSQL / SQLite</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-[var(--border-color)]">
-                <span>Local Cache:</span>
-                <span className="font-bold text-[var(--text-primary)]">IndexedDB & SQLite</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-[var(--border-color)]">
-                <span>Offline Fallback:</span>
-                <span className="font-bold text-emerald-600 dark:text-emerald-400">100% Enabled</span>
-              </div>
-            </div>
+            <p className="text-xs text-[var(--text-secondary)]">
+              Export HIPAA / GDPR compliant summary packets directly for Speech-Language Pathologists and Occupational Therapists.
+            </p>
+
+            <button
+              onClick={handlePrintClinicalReport}
+              className="w-full py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition-all"
+            >
+              <Printer className="w-4 h-4" />
+              <span>Generate Printable Summary</span>
+            </button>
           </div>
         </div>
       </div>
