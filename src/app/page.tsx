@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useSensoryStore } from '@/store/useSensoryStore';
 import { sensoryAudio } from '@/lib/audioEngine';
 import LiveAudioVisualizer from '@/components/home/LiveAudioVisualizer';
+import { SensoryProfiler } from '@/components/home/SensoryProfiler';
 import InteractiveFeatureShowcase from '@/components/home/InteractiveFeatureShowcase';
 import ClinicalMatrixSection from '@/components/home/ClinicalMatrixSection';
 import ClinicalFAQSection from '@/components/home/ClinicalFAQSection';
@@ -139,6 +140,11 @@ export default function HomePage() {
       {/* 2. REAL-TIME ACOUSTIC CALIBRATION & AUDIO ENGINE PLAYGROUND */}
       <section>
         <LiveAudioVisualizer />
+      </section>
+
+      {/* 2.5 ENVIRONMENTAL SENSORY PROFILER & DECIBEL SOUND METER */}
+      <section>
+        <SensoryProfiler />
       </section>
 
       {/* 3. INTERACTIVE FEATURE TESTBED & LIVE SANDBOX */}
