@@ -21,7 +21,11 @@ import {
   Flame,
   Coffee,
   Plus,
-  X
+  X,
+  Zap,
+  Split,
+  Timer,
+  UtensilsCrossed
 } from 'lucide-react';
 
 export interface MicroStep {
@@ -29,13 +33,16 @@ export interface MicroStep {
   title: string;
   instruction: string;
   durationMinutes: number;
+  spoonCost: number;
   dopamineReward: string;
   completed?: boolean;
+  subSteps?: string[];
 }
 
 export interface TaskBreakdown {
   taskTitle: string;
   estimatedTotalMinutes: number;
+  totalSpoons: number;
   sensoryPreparation: string;
   microSteps: MicroStep[];
 }
@@ -45,6 +52,7 @@ const sampleOverwhelmingTasks = [
   'Process 40 unread work emails and reply',
   'File monthly taxes and organize receipts',
   'Pack suitcase for a 4-day trip',
+  'Meal prep lunches for the upcoming work week',
 ];
 
 export default function ExecutiveBreakdown() {
@@ -54,20 +62,25 @@ export default function ExecutiveBreakdown() {
   const [breakdown, setBreakdown] = useState<TaskBreakdown | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // 1-Task Focus Mode
+  // Spoon Theory Budget
+  const [dailySpoonBudget, setDailySpoonBudget] = useState<number>(10);
+  const [usedSpoons, setUsedSpoons] = useState<number>(0);
+
+  // 1-Task Focus Mode & Just Start 5-min timer
   const [focusStepIndex, setFocusStepIndex] = useState<number | null>(null);
   const [focusTimerSeconds, setFocusTimerSeconds] = useState<number>(0);
   const [focusTimerTotal, setFocusTimerTotal] = useState<number>(0);
   const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false);
+  const [isJustStartMode, setIsJustStartMode] = useState<boolean>(false);
 
   // Add Custom Step Modal State
   const [showAddStepModal, setShowAddStepModal] = useState(false);
   const [customStepTitle, setCustomStepTitle] = useState('');
   const [customStepInstruction, setCustomStepInstruction] = useState('');
   const [customStepDuration, setCustomStepDuration] = useState(3);
+  const [customStepSpoons, setCustomStepSpoons] = useState(1);
   const [customStepReward, setCustomStepReward] = useState('Take a cold sip of water & stretch');
 
-  // Timer loop
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (isTimerRunning && focusTimerSeconds > 0) {
@@ -104,7 +117,18 @@ export default function ExecutiveBreakdown() {
 
       const data = await res.json();
       if (data.success && data.breakdown) {
-        setBreakdown(data.breakdown);
+        const enhancedSteps: MicroStep[] = (data.breakdown.microSteps || []).map((s: MicroStep, i: number) => ({
+          ...s,
+          spoonCost: s.spoonCost || (energyLevel === 'low' ? 1 : 2),
+        }));
+
+        const totalSpoons = enhancedSteps.reduce((acc, s) => acc + s.spoonCost, 0);
+
+        setBreakdown({
+          ...data.breakdown,
+          microSteps: enhancedSteps,
+          totalSpoons,
+        });
         setFocusStepIndex(0);
         sensoryAudio.playSoftChime('success');
       }
@@ -120,6 +144,16 @@ export default function ExecutiveBreakdown() {
     const secs = step.durationMinutes * 60;
     setFocusTimerTotal(secs);
     setFocusTimerSeconds(secs);
+    setIsJustStartMode(false);
+    setIsTimerRunning(true);
+    sensoryAudio.playSoftChime('tap');
+  };
+
+  const handleStart5MinRule = () => {
+    const secs = 5 * 60;
+    setFocusTimerTotal(secs);
+    setFocusTimerSeconds(secs);
+    setIsJustStartMode(true);
     setIsTimerRunning(true);
     sensoryAudio.playSoftChime('tap');
   };
@@ -132,6 +166,11 @@ export default function ExecutiveBreakdown() {
     const updated = breakdown.microSteps.map((s, i) =>
       i === idx ? { ...s, completed: !s.completed } : s
     );
+
+    const completedSpoons = updated
+      .filter((s) => s.completed)
+      .reduce((acc, s) => acc + s.spoonCost, 0);
+    setUsedSpoons(completedSpoons);
 
     const allDone = updated.every((s) => s.completed);
     if (allDone) {
@@ -148,6 +187,25 @@ export default function ExecutiveBreakdown() {
     setBreakdown({ ...breakdown, microSteps: updated });
   };
 
+  const handleRecursiveBreakdown = (idx: number) => {
+    if (!breakdown) return;
+    sensoryAudio.playSoftChime('tap');
+
+    const step = breakdown.microSteps[idx];
+    const subSteps = [
+      `1. Stand up and look at target area without touching anything (10s)`,
+      `2. Set phone in silent mode out of reach (15s)`,
+      `3. Complete initial micro-action: ${step.title} (90s)`,
+      `4. Stop and celebrate with 1 deep breath.`,
+    ];
+
+    const updated = breakdown.microSteps.map((s, i) =>
+      i === idx ? { ...s, subSteps } : s
+    );
+
+    setBreakdown({ ...breakdown, microSteps: updated });
+  };
+
   const handleAddCustomStep = () => {
     if (!breakdown || !customStepTitle.trim()) return;
 
@@ -156,6 +214,7 @@ export default function ExecutiveBreakdown() {
       title: customStepTitle.trim(),
       instruction: customStepInstruction.trim() || customStepTitle.trim(),
       durationMinutes: Math.max(1, customStepDuration),
+      spoonCost: customStepSpoons,
       dopamineReward: customStepReward.trim(),
       completed: false,
     };
@@ -164,6 +223,7 @@ export default function ExecutiveBreakdown() {
       ...breakdown,
       microSteps: [...breakdown.microSteps, newStep],
       estimatedTotalMinutes: breakdown.estimatedTotalMinutes + newStep.durationMinutes,
+      totalSpoons: breakdown.totalSpoons + newStep.spoonCost,
     });
 
     setShowAddStepModal(false);
@@ -176,21 +236,54 @@ export default function ExecutiveBreakdown() {
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6">
+      {/* Spoon Theory Energy Telemetry Bar */}
+      <div className="p-4 rounded-2xl sensory-card flex flex-wrap items-center justify-between gap-3 border border-[var(--border-color)]">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400">
+            <UtensilsCrossed className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-extrabold uppercase tracking-wider text-[var(--text-secondary)]">
+                Daily Spoon Theory Budget
+              </span>
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300">
+                {dailySpoonBudget - usedSpoons} Spoons Left
+              </span>
+            </div>
+            <p className="text-xs text-[var(--text-secondary)]">
+              Tasks cost spoons. Monitor energy to prevent autistic burnout.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleStart5MinRule}
+            className="px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all active:scale-95"
+            title="The 5-Minute Rule: Zero guilt, stop anytime after 5 minutes"
+          >
+            <Timer className="w-3.5 h-3.5" />
+            <span>"Just Start" 5-Min Timer</span>
+          </button>
+        </div>
+      </div>
+
       {/* Task Input Header */}
       <div className="p-5 rounded-3xl sensory-card space-y-4">
         <div>
           <h2 className="text-lg font-extrabold text-[var(--text-primary)] flex items-center gap-2">
             <ListChecks className="w-5 h-5 text-emerald-500" />
-            <span>Executive Functioning Breakdown Engine</span>
+            <span>Executive Functioning Decomposer & Focus Engine</span>
           </h2>
           <p className="text-xs text-[var(--text-secondary)]">
             Bypasses task paralysis by splitting big goals into atomic, 2-to-5 minute single actions.
           </p>
         </div>
 
-        {/* Energy Spoon Level Selector */}
+        {/* Energy Level Selector */}
         <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-[var(--text-secondary)]">Energy Level:</span>
+          <span className="text-xs font-bold text-[var(--text-secondary)]">Spoon State:</span>
           <div className="flex items-center gap-1.5 p-1 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-color)]">
             <button
               onClick={() => setEnergyLevel('low')}
@@ -201,7 +294,7 @@ export default function ExecutiveBreakdown() {
               }`}
             >
               <Coffee className="w-3.5 h-3.5" />
-              <span>Low Spoons</span>
+              <span>Low Spoons (1–2m tasks)</span>
             </button>
             <button
               onClick={() => setEnergyLevel('medium')}
@@ -223,7 +316,7 @@ export default function ExecutiveBreakdown() {
               }`}
             >
               <Flame className="w-3.5 h-3.5" />
-              <span>Sprint</span>
+              <span>Hyperfocus Sprint</span>
             </button>
           </div>
         </div>
@@ -240,7 +333,7 @@ export default function ExecutiveBreakdown() {
             type="text"
             value={taskInput}
             onChange={(e) => setTaskInput(e.target.value)}
-            placeholder="Type any task causing paralysis (e.g., 'Clean messy kitchen')..."
+            placeholder="Type any overwhelming task (e.g., 'Clean kitchen' or 'File quarterly taxes')..."
             className="flex-1 px-4 py-3 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-surface)] text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] placeholder:text-[var(--text-secondary)]/60"
           />
           <button
@@ -294,10 +387,14 @@ export default function ExecutiveBreakdown() {
                 <span className="text-xs font-extrabold px-3 py-1 rounded-full bg-[var(--accent-primary)] text-white">
                   Focus Step {currentFocusStep.stepIndex} of {breakdown.microSteps.length}
                 </span>
-                <span className="text-xs font-bold text-[var(--text-secondary)] flex items-center gap-1">
-                  <Clock className="w-3.5 h-3.5" />
-                  {currentFocusStep.durationMinutes} Minutes Only
-                </span>
+                <div className="flex items-center gap-2 text-xs font-bold text-[var(--text-secondary)]">
+                  <span className="flex items-center gap-1">
+                    <Clock className="w-3.5 h-3.5" />
+                    {currentFocusStep.durationMinutes} Min
+                  </span>
+                  <span>•</span>
+                  <span>{currentFocusStep.spoonCost} Spoon</span>
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -307,13 +404,27 @@ export default function ExecutiveBreakdown() {
                 <p className="text-sm sm:text-base font-medium text-[var(--text-primary)] leading-relaxed">
                   {currentFocusStep.instruction}
                 </p>
+
+                {currentFocusStep.subSteps && (
+                  <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-300 dark:border-purple-800 space-y-1.5">
+                    <p className="text-xs font-bold text-purple-700 dark:text-purple-300">
+                      Goblin Recursive Sub-Actions:
+                    </p>
+                    {currentFocusStep.subSteps.map((sub, sIdx) => (
+                      <p key={sIdx} className="text-xs text-purple-900 dark:text-purple-200">
+                        {sub}
+                      </p>
+                    ))}
+                  </div>
+                )}
+
                 <div className="pt-2 text-xs font-semibold text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5" />
                   <span>Dopamine Reward: {currentFocusStep.dopamineReward}</span>
                 </div>
               </div>
 
-              {/* Focus Mode Action Bar */}
+              {/* Action Bar */}
               <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[var(--border-color)]">
                 <div className="flex items-center gap-2">
                   <button
@@ -321,7 +432,16 @@ export default function ExecutiveBreakdown() {
                     className="px-4 py-2 rounded-xl bg-[var(--accent-primary)] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm hover:bg-[var(--accent-hover)]"
                   >
                     {isTimerRunning ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-                    <span>{isTimerRunning ? 'Pause 3-Min Pacer' : 'Start Micro Timer'}</span>
+                    <span>{isTimerRunning ? 'Pause Pacer' : 'Start Micro Timer'}</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleRecursiveBreakdown(focusStepIndex!)}
+                    className="px-3 py-2 rounded-xl border border-[var(--border-color)] text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--bg-surface)] flex items-center gap-1"
+                    title="Break down into smaller 30-second steps"
+                  >
+                    <Split className="w-3.5 h-3.5 text-purple-500" />
+                    <span>Break Down Smaller</span>
                   </button>
 
                   <button
@@ -357,11 +477,11 @@ export default function ExecutiveBreakdown() {
             </div>
           )}
 
-          {/* Full Step Checklist with Add Custom Step Button */}
+          {/* Full Step Checklist */}
           <div className="space-y-2.5">
             <div className="flex items-center justify-between px-1">
               <h4 className="text-xs font-extrabold uppercase tracking-wider text-[var(--text-secondary)]">
-                All Atomic Micro-Steps ({breakdown.microSteps.length})
+                All Atomic Micro-Steps ({breakdown.microSteps.length}) • Total: {breakdown.totalSpoons} Spoons
               </h4>
               <button
                 onClick={() => setShowAddStepModal(true)}
@@ -465,31 +585,34 @@ export default function ExecutiveBreakdown() {
                 />
               </div>
 
-              <div>
-                <label className="text-xs font-bold text-[var(--text-secondary)] block mb-1">
-                  Duration (Minutes): {customStepDuration} min
-                </label>
-                <input
-                  type="range"
-                  min="1"
-                  max="10"
-                  value={customStepDuration}
-                  onChange={(e) => setCustomStepDuration(parseInt(e.target.value))}
-                  className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500"
-                />
-              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-[var(--text-secondary)] block mb-1">
+                    Duration: {customStepDuration}m
+                  </label>
+                  <input
+                    type="range"
+                    min="1"
+                    max="10"
+                    value={customStepDuration}
+                    onChange={(e) => setCustomStepDuration(parseInt(e.target.value))}
+                    className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                  />
+                </div>
 
-              <div>
-                <label className="text-xs font-bold text-[var(--text-secondary)] block mb-1">
-                  Micro Dopamine Reward
-                </label>
-                <input
-                  type="text"
-                  value={customStepReward}
-                  onChange={(e) => setCustomStepReward(e.target.value)}
-                  placeholder="e.g., 'Take a deep breath and eat one blueberry.'"
-                  className="w-full px-3 py-2 rounded-xl border border-[var(--border-color)] bg-[var(--bg-surface)] text-sm text-[var(--text-primary)]"
-                />
+                <div>
+                  <label className="text-xs font-bold text-[var(--text-secondary)] block mb-1">
+                    Spoon Cost: {customStepSpoons}
+                  </label>
+                  <input
+                    type="range"
+                    min="1"
+                    max="4"
+                    value={customStepSpoons}
+                    onChange={(e) => setCustomStepSpoons(parseInt(e.target.value))}
+                    className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-500"
+                  />
+                </div>
               </div>
             </div>
 
