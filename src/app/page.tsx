@@ -7,6 +7,7 @@ import { sensoryAudio } from '@/lib/audioEngine';
 import LiveAudioVisualizer from '@/components/home/LiveAudioVisualizer';
 import { SensoryProfiler } from '@/components/home/SensoryProfiler';
 import { StimmingPlayground } from '@/components/home/StimmingPlayground';
+import { SpecialInterestQuestEngine } from '@/components/home/SpecialInterestQuestEngine';
 import InteractiveFeatureShowcase from '@/components/home/InteractiveFeatureShowcase';
 import ClinicalMatrixSection from '@/components/home/ClinicalMatrixSection';
 import ClinicalFAQSection from '@/components/home/ClinicalFAQSection';
@@ -151,6 +152,11 @@ export default function HomePage() {
       {/* 2.8 TACTILE STIMMING & FOCUS PLAYGROUND */}
       <section>
         <StimmingPlayground />
+      </section>
+
+      {/* 2.9 PDA SPECIAL INTEREST QUEST ENGINE */}
+      <section>
+        <SpecialInterestQuestEngine />
       </section>
 
       {/* 3. INTERACTIVE FEATURE TESTBED & LIVE SANDBOX */}
