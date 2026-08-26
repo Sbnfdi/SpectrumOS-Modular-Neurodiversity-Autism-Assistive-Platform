@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSensoryStore, SensoryTheme } from '@/store/useSensoryStore';
-import { useProfileStore } from '@/store/useProfileStore';
+import { useProfileStore, UserProfile } from '@/store/useProfileStore';
 import {
   Sparkles,
   Volume2,
@@ -16,7 +16,11 @@ import {
   Eye,
   Sliders,
   Check,
-  Activity
+  Activity,
+  Users,
+  UserCheck,
+  Plus,
+  X
 } from 'lucide-react';
 
 export default function AppNavbar() {
@@ -33,8 +37,15 @@ export default function AppNavbar() {
     triggerEmergencyCalm
   } = useSensoryStore();
 
-  const { activeProfile } = useProfileStore();
+  const { activeProfile, availableProfiles, setActiveProfile, addProfile } = useProfileStore();
   const [showSensoryMenu, setShowSensoryMenu] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+
+  // New Profile Form
+  const [newProfileName, setNewProfileName] = useState('');
+  const [newProfileStage, setNewProfileStage] = useState<'early' | 'school' | 'adult'>('early');
+  const [newProfileRole, setNewProfileRole] = useState<'individual' | 'caregiver' | 'therapist' | 'educator'>('individual');
+  const [newProfileAvatar, setNewProfileAvatar] = useState('🌟');
 
   const navItems = [
     { href: '/early-childhood', label: 'Early Childhood', sub: '2–7 yrs', icon: '🧸' },
@@ -51,6 +62,25 @@ export default function AppNavbar() {
     { id: 'high-contrast', label: 'High Contrast', bg: '#000000', border: '#ffff00' },
     { id: 'dark', label: 'Midnight Dark', bg: '#111b2b', border: '#38a5f6' },
   ];
+
+  const handleCreateProfile = () => {
+    if (!newProfileName.trim()) return;
+
+    const newProf: UserProfile = {
+      id: `prof_${Date.now()}`,
+      displayName: newProfileName.trim(),
+      role: newProfileRole,
+      developmentalStage: newProfileStage,
+      sensorySensitivities: ['Loud sounds', 'Unexpected transitions'],
+      specialInterests: ['Special interest exploration'],
+      preferredTheme: 'calm-blue',
+      avatarIcon: newProfileAvatar,
+    };
+
+    addProfile(newProf);
+    setNewProfileName('');
+    setShowProfileModal(false);
+  };
 
   return (
     <header className="sticky top-0 z-40 w-full backdrop-blur-xl bg-white/70 dark:bg-[#0b111a]/75 border-b border-[var(--border-color)] transition-colors">
@@ -72,15 +102,24 @@ export default function AppNavbar() {
                   v1.0
                 </span>
               </div>
-              <p className="text-xs text-[var(--text-secondary)] font-medium hidden sm:flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span>Profile: <strong className="text-[var(--text-primary)]">{activeProfile.displayName}</strong></span>
-              </p>
             </div>
           </Link>
+
+          {/* Profile Switcher Quick Button */}
+          <button
+            onClick={() => setShowProfileModal(true)}
+            className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-color)] hover:border-blue-400 text-xs text-[var(--text-secondary)] transition-all"
+            title="Switch User Profile"
+          >
+            <span>{activeProfile.avatarIcon || '👤'}</span>
+            <span className="font-bold text-[var(--text-primary)]">{activeProfile.displayName}</span>
+            <span className="text-[10px] capitalize px-1.5 py-0.2 rounded-full bg-blue-500/10 text-blue-600 font-semibold">
+              {activeProfile.role}
+            </span>
+          </button>
         </div>
 
-        {/* Navigation Tabs (Tactile high-tech segmented pills) */}
+        {/* Navigation Tabs */}
         <nav className="hidden md:flex items-center gap-1 p-1 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-color)] shadow-xs">
           {navItems.map((item) => {
             const isActive = pathname === item.href || (pathname.startsWith(item.href) && item.href !== '/');
@@ -103,18 +142,12 @@ export default function AppNavbar() {
 
         {/* Sensory Controls & SOS Calm Button */}
         <div className="flex items-center gap-2">
-          {/* Sensory Soundscape Pill */}
+          {/* Mobile Profile Switch Button */}
           <button
-            onClick={() => setSensoryAudio(activeSensoryAudio === 'brown-noise' ? 'none' : 'brown-noise')}
-            title={activeSensoryAudio === 'brown-noise' ? 'Turn off brown noise' : 'Turn on soothing brown noise'}
-            className={`px-3 py-2 rounded-xl border text-xs font-semibold font-display flex items-center gap-1.5 transition-all tactile-btn ${
-              activeSensoryAudio === 'brown-noise'
-                ? 'bg-emerald-500/15 border-emerald-400 text-emerald-700 dark:text-emerald-300 shadow-xs'
-                : 'bg-[var(--bg-surface)] border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-            }`}
+            onClick={() => setShowProfileModal(true)}
+            className="sm:hidden p-2 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-color)] text-sm"
           >
-            <Waves className={`w-4 h-4 ${activeSensoryAudio === 'brown-noise' ? 'animate-pulse text-emerald-600' : ''}`} />
-            <span className="hidden lg:inline">{activeSensoryAudio === 'brown-noise' ? 'Brown Noise' : 'Soundscape'}</span>
+            {activeProfile.avatarIcon || '👤'}
           </button>
 
           {/* Sensory Settings Menu */}
@@ -166,45 +199,6 @@ export default function AppNavbar() {
                   </div>
                 </div>
 
-                {/* Soundscape Mode */}
-                <div className="mb-4">
-                  <label className="text-xs font-semibold text-[var(--text-secondary)] block mb-2 font-display">
-                    Calming Audio Tone
-                  </label>
-                  <div className="grid grid-cols-3 gap-1 font-mono text-[11px]">
-                    <button
-                      onClick={() => setSensoryAudio('none')}
-                      className={`px-2 py-1.5 rounded-lg border text-center font-bold ${
-                        activeSensoryAudio === 'none'
-                          ? 'bg-[var(--accent-primary)] text-white border-transparent'
-                          : 'bg-[var(--bg-surface)] border-[var(--border-color)] text-[var(--text-secondary)]'
-                      }`}
-                    >
-                      Mute
-                    </button>
-                    <button
-                      onClick={() => setSensoryAudio('brown-noise')}
-                      className={`px-2 py-1.5 rounded-lg border text-center font-bold ${
-                        activeSensoryAudio === 'brown-noise'
-                          ? 'bg-emerald-600 text-white border-transparent'
-                          : 'bg-[var(--bg-surface)] border-[var(--border-color)] text-[var(--text-secondary)]'
-                      }`}
-                    >
-                      Brown
-                    </button>
-                    <button
-                      onClick={() => setSensoryAudio('binaural')}
-                      className={`px-2 py-1.5 rounded-lg border text-center font-bold ${
-                        activeSensoryAudio === 'binaural'
-                          ? 'bg-indigo-600 text-white border-transparent'
-                          : 'bg-[var(--bg-surface)] border-[var(--border-color)] text-[var(--text-secondary)]'
-                      }`}
-                    >
-                      Theta
-                    </button>
-                  </div>
-                </div>
-
                 {/* Volume Ceiling Slider */}
                 <div className="mb-4">
                   <div className="flex items-center justify-between text-xs font-semibold text-[var(--text-secondary)] mb-1">
@@ -242,7 +236,7 @@ export default function AppNavbar() {
             )}
           </div>
 
-          {/* Emergency Calm SOS Meltdown Tool Button (Immediate 1-Click Access) */}
+          {/* Emergency Calm SOS Meltdown Button */}
           <button
             onClick={triggerEmergencyCalm}
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-400 text-rose-700 dark:text-rose-300 font-extrabold text-xs font-display shadow-xs active:scale-95 transition-all"
@@ -253,6 +247,120 @@ export default function AppNavbar() {
           </button>
         </div>
       </div>
+
+      {/* Multi-Profile Switcher Modal */}
+      {showProfileModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-lg sensory-card p-6 space-y-5 animate-in zoom-in-95">
+            <div className="flex items-center justify-between pb-3 border-b border-[var(--border-color)]">
+              <div className="flex items-center gap-2">
+                <Users className="w-5 h-5 text-blue-500" />
+                <h3 className="text-base font-extrabold text-[var(--text-primary)]">
+                  Select or Switch User Profile
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowProfileModal(false)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Profile Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[260px] overflow-y-auto pr-1">
+              {availableProfiles.map((prof) => {
+                const isActive = activeProfile.id === prof.id;
+                return (
+                  <button
+                    key={prof.id}
+                    onClick={() => {
+                      setActiveProfile(prof);
+                      setShowProfileModal(false);
+                    }}
+                    className={`p-3.5 rounded-2xl border-2 text-left transition-all flex items-center justify-between ${
+                      isActive
+                        ? 'bg-blue-500/15 border-blue-500 shadow-sm scale-[1.02]'
+                        : 'bg-[var(--bg-surface)] border-[var(--border-color)] hover:border-blue-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-2xl">{prof.avatarIcon || '👤'}</span>
+                      <div>
+                        <p className="text-sm font-bold text-[var(--text-primary)]">{prof.displayName}</p>
+                        <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">
+                          {prof.role} • {prof.developmentalStage}
+                        </span>
+                      </div>
+                    </div>
+                    {isActive && <Check className="w-4 h-4 text-blue-600" />}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Add New Profile Form */}
+            <div className="pt-3 border-t border-[var(--border-color)] space-y-3">
+              <span className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider block">
+                Create New Member / Client Profile
+              </span>
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  type="text"
+                  value={newProfileName}
+                  onChange={(e) => setNewProfileName(e.target.value)}
+                  placeholder="Display Name (e.g. 'Alex')"
+                  className="px-3 py-2 rounded-xl border border-[var(--border-color)] bg-[var(--bg-surface)] text-xs text-[var(--text-primary)]"
+                />
+                <select
+                  value={newProfileRole}
+                  onChange={(e) => setNewProfileRole(e.target.value as UserProfile['role'])}
+                  className="px-3 py-2 rounded-xl border border-[var(--border-color)] bg-[var(--bg-surface)] text-xs text-[var(--text-primary)]"
+                >
+                  <option value="individual">Individual (User)</option>
+                  <option value="caregiver">Caregiver / Parent</option>
+                  <option value="therapist">Therapist (OT/SLP)</option>
+                  <option value="educator">Educator / Teacher</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <select
+                  value={newProfileStage}
+                  onChange={(e) => setNewProfileStage(e.target.value as UserProfile['developmentalStage'])}
+                  className="px-3 py-2 rounded-xl border border-[var(--border-color)] bg-[var(--bg-surface)] text-xs text-[var(--text-primary)]"
+                >
+                  <option value="early">Early Childhood (2–7)</option>
+                  <option value="school">School Age (8–12)</option>
+                  <option value="adult">Adulthood (13+)</option>
+                </select>
+
+                <select
+                  value={newProfileAvatar}
+                  onChange={(e) => setNewProfileAvatar(e.target.value)}
+                  className="px-3 py-2 rounded-xl border border-[var(--border-color)] bg-[var(--bg-surface)] text-xs text-[var(--text-primary)]"
+                >
+                  <option value="🌟">🌟 Star</option>
+                  <option value="🚂">🚂 Train</option>
+                  <option value="🚀">🚀 Space Rocket</option>
+                  <option value="🦖">🦖 Dinosaur</option>
+                  <option value="💻">💻 Code Terminal</option>
+                  <option value="🎨">🎨 Artist</option>
+                </select>
+              </div>
+
+              <button
+                onClick={handleCreateProfile}
+                disabled={!newProfileName.trim()}
+                className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs disabled:opacity-50"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Save New Profile</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 }
