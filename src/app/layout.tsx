@@ -4,6 +4,7 @@ import AppNavbar from '@/components/layout/AppNavbar';
 import AppFooter from '@/components/layout/AppFooter';
 import EmergencyCalm from '@/components/early-childhood/EmergencyCalm';
 import ServiceWorkerRegister from '@/components/layout/ServiceWorkerRegister';
+import { SensorySoundscapeDrawer } from '@/components/layout/SensorySoundscapeDrawer';
 
 export const metadata: Metadata = {
   title: 'SpectrumOS — Modular Neurodiversity & Assistive Platform',
@@ -52,6 +53,7 @@ export default function RootLayout({
           {children}
         </main>
         <AppFooter />
+        <SensorySoundscapeDrawer />
         <EmergencyCalm />
       </body>
     </html>
