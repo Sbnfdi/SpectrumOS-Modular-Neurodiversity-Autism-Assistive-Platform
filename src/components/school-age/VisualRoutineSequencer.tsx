@@ -12,12 +12,14 @@ import {
   Sparkles,
   Sun,
   Moon,
-  BookOpen,
   Plus,
   Clock,
   Award,
   X,
-  PlusCircle
+  Sliders,
+  Hourglass,
+  Activity,
+  Layers
 } from 'lucide-react';
 
 export interface RoutineStep {
@@ -69,12 +71,25 @@ const defaultSequences: RoutineSequence[] = [
       { id: 'a3', title: 'Comfort snack and cold hydration', durationMinutes: 8, completed: false },
     ],
   },
+  {
+    id: 'sensorybreak',
+    title: '5-Minute Reset & Grounding 🌿',
+    icon: '🌿',
+    steps: [
+      { id: 'sb1', title: 'Put on noise-cancelling headphones', durationMinutes: 1, completed: false },
+      { id: 'sb2', title: 'Sip ice water slowly through a straw', durationMinutes: 2, completed: false },
+      { id: 'sb3', title: '4 slow box breaths (Inhale 4, Hold 4, Exhale 4, Hold 4)', durationMinutes: 2, completed: false },
+    ],
+  },
 ];
+
+type TimerVisualType = 'pie' | 'hourglass' | 'linear' | 'sunmoon';
 
 export default function VisualRoutineSequencer() {
   const [sequences, setSequences] = useState<RoutineSequence[]>(defaultSequences);
   const [activeSeqId, setActiveSeqId] = useState<string>('morning');
   const [activeStepId, setActiveStepId] = useState<string | null>(null);
+  const [timerStyle, setTimerStyle] = useState<TimerVisualType>('pie');
 
   // Modal State for adding custom steps
   const [showAddStepModal, setShowAddStepModal] = useState(false);
@@ -88,7 +103,6 @@ export default function VisualRoutineSequencer() {
 
   const currentSequence = sequences.find((s) => s.id === activeSeqId) || sequences[0];
 
-  // Visual Pie Chart Calculation (Percentage of time elapsed)
   const percentElapsed = totalStepSeconds > 0
     ? Math.max(0, Math.min(100, ((totalStepSeconds - timerSeconds) / totalStepSeconds) * 100))
     : 0;
@@ -128,7 +142,6 @@ export default function VisualRoutineSequencer() {
           const updatedSteps = seq.steps.map((st) =>
             st.id === stepId ? { ...st, completed: !st.completed } : st
           );
-          // Check if all are completed
           const allDone = updatedSteps.every((st) => st.completed);
           if (allDone) {
             try {
@@ -141,7 +154,6 @@ export default function VisualRoutineSequencer() {
             } catch {}
           }
 
-          // Persist to SQLite
           try {
             fetch('/api/routines', {
               method: 'POST',
@@ -263,7 +275,7 @@ export default function VisualRoutineSequencer() {
         </div>
       </div>
 
-      {/* Main Routine Grid with Non-Stressful Pie Timer */}
+      {/* Main Routine Grid */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
         {/* Left: Step-by-Step Visual Checklist (7 Cols) */}
         <div className="md:col-span-7 sensory-card p-6 space-y-4">
@@ -320,7 +332,6 @@ export default function VisualRoutineSequencer() {
                     </div>
                   </div>
 
-                  {/* Start Timer for this step button */}
                   <button
                     onClick={() => handleStartStepTimer(step)}
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
@@ -338,54 +349,130 @@ export default function VisualRoutineSequencer() {
           </div>
         </div>
 
-        {/* Right: Stress-Free Visual Pie-Chart Timer (5 Cols) */}
+        {/* Right: Multi-Modal Visual Timer (5 Cols) */}
         <div className="md:col-span-5 sensory-card p-6 flex flex-col items-center justify-between text-center space-y-4 border-2 border-[var(--border-color)]">
-          <div className="w-full">
+          <div className="w-full flex items-center justify-between">
             <span className="text-xs font-extrabold uppercase tracking-wider text-[var(--text-secondary)]">
-              Visual Pie Countdown
+              Visual Pacing Mode
             </span>
-            <p className="text-sm font-extrabold text-[var(--text-primary)] mt-0.5">
-              {activeStep ? activeStep.title : 'Select a step to start timer'}
-            </p>
-          </div>
-
-          {/* Non-digital SVG Pie-Chart (Soft Visual Circle) */}
-          <div className="relative w-48 h-48 flex items-center justify-center">
-            <svg className="w-full h-full -rotate-90 transform" viewBox="0 0 100 100">
-              {/* Background Track Circle */}
-              <circle
-                cx="50"
-                cy="50"
-                r="42"
-                className="stroke-slate-200 dark:stroke-slate-700"
-                strokeWidth="10"
-                fill="transparent"
-              />
-              {/* Smooth Pie Arc Filling */}
-              <circle
-                cx="50"
-                cy="50"
-                r="42"
-                className="stroke-[var(--accent-primary)] transition-all duration-1000 ease-linear"
-                strokeWidth="10"
-                strokeDasharray={`${2 * Math.PI * 42}`}
-                strokeDashoffset={`${2 * Math.PI * 42 * (1 - percentElapsed / 100)}`}
-                strokeLinecap="round"
-                fill="transparent"
-              />
-            </svg>
-
-            {/* Center Gentle Icon & Status */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-              <Sparkles className="w-6 h-6 text-[var(--accent-primary)] mb-1 animate-gentle-pulse" />
-              <span className="text-xl font-extrabold text-[var(--text-primary)]">
-                {Math.round(percentElapsed)}%
-              </span>
-              <span className="text-[11px] font-semibold text-[var(--text-secondary)]">
-                {isTimerRunning ? 'Pacing smoothly' : 'Ready'}
-              </span>
+            {/* Visual Mode Selector */}
+            <div className="flex items-center gap-1 p-0.5 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-color)]">
+              <button
+                onClick={() => setTimerStyle('pie')}
+                className={`p-1 rounded text-xs font-bold ${timerStyle === 'pie' ? 'bg-blue-600 text-white' : 'text-slate-400'}`}
+                title="Pie Chart Circle"
+              >
+                <Clock className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => setTimerStyle('hourglass')}
+                className={`p-1 rounded text-xs font-bold ${timerStyle === 'hourglass' ? 'bg-blue-600 text-white' : 'text-slate-400'}`}
+                title="Sand Hourglass"
+              >
+                <Hourglass className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => setTimerStyle('linear')}
+                className={`p-1 rounded text-xs font-bold ${timerStyle === 'linear' ? 'bg-blue-600 text-white' : 'text-slate-400'}`}
+                title="Linear Fill Bar"
+              >
+                <Activity className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => setTimerStyle('sunmoon')}
+                className={`p-1 rounded text-xs font-bold ${timerStyle === 'sunmoon' ? 'bg-blue-600 text-white' : 'text-slate-400'}`}
+                title="Sun to Moon Arc"
+              >
+                <Sun className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
+
+          <p className="text-sm font-extrabold text-[var(--text-primary)]">
+            {activeStep ? activeStep.title : 'Select a step to start visual timer'}
+          </p>
+
+          {/* Visual Display based on selected style */}
+          {timerStyle === 'pie' && (
+            <div className="relative w-48 h-48 flex items-center justify-center">
+              <svg className="w-full h-full -rotate-90 transform" viewBox="0 0 100 100">
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="42"
+                  className="stroke-slate-200 dark:stroke-slate-700"
+                  strokeWidth="10"
+                  fill="transparent"
+                />
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="42"
+                  className="stroke-[var(--accent-primary)] transition-all duration-1000 ease-linear"
+                  strokeWidth="10"
+                  strokeDasharray={`${2 * Math.PI * 42}`}
+                  strokeDashoffset={`${2 * Math.PI * 42 * (1 - percentElapsed / 100)}`}
+                  strokeLinecap="round"
+                  fill="transparent"
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                <Sparkles className="w-6 h-6 text-[var(--accent-primary)] mb-1 animate-gentle-pulse" />
+                <span className="text-xl font-extrabold text-[var(--text-primary)]">
+                  {Math.round(percentElapsed)}%
+                </span>
+                <span className="text-[11px] font-semibold text-[var(--text-secondary)]">
+                  {isTimerRunning ? 'Pacing smoothly' : 'Ready'}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {timerStyle === 'hourglass' && (
+            <div className="w-36 h-48 rounded-2xl bg-slate-100 dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-700 flex flex-col items-center justify-between p-3 relative overflow-hidden">
+              <div className="w-full h-18 rounded-t-xl bg-amber-500/20 border border-amber-400/40 relative overflow-hidden">
+                <div 
+                  className="absolute bottom-0 inset-x-0 bg-amber-500 transition-all duration-1000"
+                  style={{ height: `${100 - percentElapsed}%` }}
+                />
+              </div>
+              <div className="w-2 h-4 bg-amber-600 rounded-full" />
+              <div className="w-full h-18 rounded-b-xl bg-amber-500/20 border border-amber-400/40 relative overflow-hidden">
+                <div 
+                  className="absolute bottom-0 inset-x-0 bg-amber-500 transition-all duration-1000"
+                  style={{ height: `${percentElapsed}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          {timerStyle === 'linear' && (
+            <div className="w-full space-y-2 py-6">
+              <div className="w-full h-6 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden p-1">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-blue-500 via-teal-400 to-emerald-400 transition-all duration-1000 ease-linear shadow-sm"
+                  style={{ width: `${percentElapsed}%` }}
+                />
+              </div>
+              <span className="text-sm font-extrabold text-blue-500">{Math.round(percentElapsed)}% Progress</span>
+            </div>
+          )}
+
+          {timerStyle === 'sunmoon' && (
+            <div className="w-full py-4 flex flex-col items-center gap-2">
+              <div className="w-full flex items-center justify-between text-2xl px-4">
+                <span>☀️</span>
+                <span className="text-xs font-bold text-slate-400">Day Arc</span>
+                <span>🌙</span>
+              </div>
+              <div className="w-full h-3 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-amber-400 via-blue-400 to-indigo-600 transition-all duration-1000"
+                  style={{ width: `${percentElapsed}%` }}
+                />
+              </div>
+            </div>
+          )}
 
           {/* Timer Controls */}
           {activeStep && (
@@ -409,7 +496,7 @@ export default function VisualRoutineSequencer() {
           )}
 
           <p className="text-[11px] text-[var(--text-secondary)] font-medium">
-            Visual pie charts reduce time blindness without the anxiety of ticking digital numbers.
+            Visual pacing removes the panic of ticking clocks while preserving predictable routine momentum.
           </p>
         </div>
       </div>
